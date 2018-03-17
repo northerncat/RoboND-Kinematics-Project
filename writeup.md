@@ -17,9 +17,7 @@
 
 [//]: # (Image References)
 
-[image1]: ./misc_images/misc1.png
-[image2]: ./misc_images/misc3.png
-[image3]: ./misc_images/misc2.png
+[kr210_diagram]: ./misc_images/kr210_diagram.JPG
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/972/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -34,9 +32,17 @@ You're reading it!
 ### Kinematic Analysis
 #### 1. Run the forward_kinematics demo and evaluate the kr210.urdf.xacro file to perform kinematic analysis of Kuka KR210 robot and derive its DH parameters.
 
-Here is an example of how to include an image in your writeup.
+| i | alpha_i-1 | a_i-1 | d_i | theta_i |
+| --- | --- | --- | --- | --- |
+| 1 | 0 | 0 | 0.33 + 0.42 = 0.75 |  |
+| 2 | -pi/2 | 0.35 | 0 | theta_2 - pi/2 |
+| 3 | 0 | 1.25 | 0 |  |
+| 4 | -pi/2 | -0.054 | 0.96 + 0.54 = 1.5 |  |
+| 5 | pi/2 | 0 | 0 |  |
+| 6 | -pi/2 | 0 | 0 |  |
+| 7/G | 0 | 0 | 0.193 + 0.11 = 0.303 | 0 |
 
-![alt text][image1]
+![KR210 DH Diagram][kr210_digram]
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
 
@@ -55,7 +61,6 @@ Links | alpha(i-1) | a(i-1) | d(i-1) | theta(i)
 
 And here's where you can draw out and show your math for the derivation of your theta angles. 
 
-![alt text][image2]
 
 ### Project Implementation
 
