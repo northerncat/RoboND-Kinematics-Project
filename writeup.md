@@ -17,7 +17,8 @@
 
 [//]: # (Image References)
 
-[kr210_diagram]: ./misc_images/kr210_diagram.JPG
+[diagram]: ./misc_images/kr210_diagram.png
+[image3]: ./misc_images/misc2.png
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/972/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -42,7 +43,7 @@ You're reading it!
 | 6 | -pi/2 | 0 | 0 |  |
 | 7/G | 0 | 0 | 0.193 + 0.11 = 0.303 | 0 |
 
-![KR210 DH Diagram][kr210_digram]
+![KR210 DH Diagram][diagram]
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
 
