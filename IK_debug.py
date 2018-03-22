@@ -1,6 +1,9 @@
+
+from mpmath import radians
 from sympy import *
 from time import time
-from mpmath import radians
+
+import math
 import tf
 
 '''
@@ -71,7 +74,94 @@ def test_code(test_case):
     theta5 = 0
     theta6 = 0
 
-    ## 
+    # gripper orientation correction as described in lesson
+    roll = symbols('roll')
+    pitch = symbols('pitch')
+    yaw = symbols('yaw')
+    R_x = Matrix([[ 1,          0,           0 ],
+                  [ 0,  cos(roll),  -sin(roll) ],
+                  [ 0,  sin(roll),   cos(roll) ]])
+    R_y = Matrix([[  cos(pitch),  0,  sin(pitch) ],
+                  [           0,  1,           0 ],
+                  [ -sin(pitch),  0,  cos(pitch) ]])
+    R_z = Matrix([[ cos(yaw),  -sin(yaw), 0 ],
+                  [ sin(yaw),   cos(yaw), 0 ],
+                  [        0,          0, 1 ]])
+    R_corr = R_z.evalf(subs={yaw: pi}) * R_y.evalf(subs={pitch: -pi/2})
+
+    # Extract end-effector position and orientation from request
+    # px,py,pz = end-effector position
+    # roll, pitch, yaw = end-effector orientation
+    px = req.poses[x].position.x
+    py = req.poses[x].position.y
+    pz = req.poses[x].position.z
+
+    (r, p, y) = tf.transformations.euler_from_quaternion(
+        [req.poses[x].orientation.x, req.poses[x].orientation.y,
+            req.poses[x].orientation.z, req.poses[x].orientation.w])
+
+    R_ee = (R_z * R_y * R_x).evalf(subs={roll: r, pitch: p, yaw: y}) * R_corr
+
+    eePos = Matrix([[px], [py], [pz]])
+    wcPos = eePos - 0.303 * R_ee[:, 2]
+
+    # symbols for the DH parameters, q stands for theta
+    q = symbols('q1:8')
+    d = symbols('d1:8')
+    a = symbols('a0:7')
+    alpha = symbols('alpha0:7')
+
+    # constant DH parameters
+    CONST_DH = {
+        alpha[0]:     0,  a[0]:      0,  d[0]: 0.75,
+        alpha[1]: -pi/2.,  a[1]:   0.35,  d[1]: 0.0,   q[1]: q[1] - pi/2.,
+        alpha[2]:     0,  a[2]:   1.25,  d[2]: 0.00,
+        alpha[3]: -pi/2.,  a[3]: -0.054,  d[3]: 1.5,
+        alpha[4]:  pi/2.,  a[4]:      0,  d[4]: 0.0,
+        alpha[5]: -pi/2.,  a[5]:      0,  d[5]: 0.0,
+        alpha[6]:     0,  a[6]:      0,  d[6]: 0.303,         q[6]: 0.0
+    }
+
+    theta1 = atan2(wcPos[1], wcPos[0])
+
+    # side a: distance between link 3 and write center, (sqrt(d[3] ** 2 + a[3] ** 2)).evalf(subs=CONST_DH)
+    sa = 1.501
+    # side b: distance between link 2 and wrist center, use world coordinates to calculate dist
+    dx2Wc = sqrt(wcPos[0] ** 2. + wcPos[1] ** 2.) - 0.35
+    dz2Wc = wcPos[2] - 0.75
+    sb = sqrt(dx2Wc ** 2. + dz2Wc ** 2.)
+    # side c: distance between link 2 and 3, a[2]
+    sc = 1.25
+
+    # use cosine law to get all three angles for theta 2 and 3
+    ta = acos((sb ** 2. + sc ** 2. - sa ** 2.) / (2.0 * sb * sc))
+    tb = acos((sa ** 2. + sc ** 2. - sb ** 2.) / (2.0 * sa * sc))
+    tc = acos((sa ** 2. + sb ** 2. - sc ** 2.) / (2.0 * sa * sb))
+
+    # use the diagram to compute theta2 and theta 3
+    # theta2 would be pi/2 minus angle a, then minus the angle of link2 to wrist center vs X1 axis
+    theta2 = pi/2. - ta - atan2(dz2Wc, dx2Wc)
+    # theta3 would be the negative of angle b + angle between link 3 to wrist center (abs(atan2(a[3], d[3]))) minus pi/2
+    theta3 = - (tb + 0.036 - pi/2.)
+
+    # homogeneous transformation matrices
+    T = []
+    for i in range(7):
+        T.append(Matrix([[                 cos(q[i]),                -sin(q[i]),              0,                  a[i] ],
+                         [ sin(q[i]) * cos(alpha[i]), cos(q[i]) * cos(alpha[i]), -sin(alpha[i]), -sin(alpha[i]) * d[i] ],
+                         [ sin(q[i]) * sin(alpha[i]), cos(q[i]) * sin(alpha[i]),  cos(alpha[i]),  cos(alpha[i]) * d[i] ],
+                         [                         0,                         0,              0,                     1 ]]))
+        T[i] = T[i].subs(CONST_DH)
+
+    # composition of homogeneous transformations
+    R0_3 = (T[0][:3,:3] * T[1][:3,:3] * T[2][:3,:3]).evalf(subs={q[0]: theta1, q[1]: theta2, q[2]: theta3})
+    R3_6 = R0_3.inv('LU') * R_ee
+
+    theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+    theta5 = atan2(sqrt(R3_6[0,2] ** 2. + R3_6[2,2] ** 2.), R3_6[1,2])
+    theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+
+    ##
     ########################################################################################
     
     ########################################################################################
@@ -79,13 +169,24 @@ def test_code(test_case):
     ## as the input and output the position of your end effector as your_ee = [x,y,z]
 
     ## (OPTIONAL) YOUR CODE HERE!
+    thetas = {
+        q[0]: theta1,
+        q[1]: theta2,
+        q[2]: theta3,
+        q[3]: theta4,
+        q[4]: theta5,
+        q[5]: theta6
+    }
+    T0_6 = T[0].evalf(subs = thetas)
+    for i in range(1, 7):
+        T0_6 = T0_6 * T[i].evalf(subs = thetas)
 
     ## End your code input for forward kinematics here!
     ########################################################################################
 
     ## For error analysis please set the following variables of your WC location and EE location in the format of [x,y,z]
-    your_wc = [1,1,1] # <--- Load your calculated WC values in this array
-    your_ee = [1,1,1] # <--- Load your calculated end effector value from your forward kinematics
+    your_wc = wcPos # <--- Load your calculated WC values in this array
+    your_ee = T0_6[:3, 3] # <--- Load your calculated end effector value from your forward kinematics
     ########################################################################################
 
     ## Error analysis
@@ -136,6 +237,6 @@ def test_code(test_case):
 
 if __name__ == "__main__":
     # Change test case number for different scenarios
-    test_case_number = 1
-
-    test_code(test_cases[test_case_number])
+    for test_case_number in [1, 2, 3]:
+        print 'Testing case', test_case_number
+        test_code(test_cases[test_case_number])

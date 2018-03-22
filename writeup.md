@@ -17,6 +17,7 @@
 
 [//]: # (Image References)
 
+[alphai-1]: ./misc_images/alpha_i-1.gif
 [diagram]: ./misc_images/kr210_diagram.png
 [image3]: ./misc_images/misc2.png
 
@@ -33,29 +34,23 @@ You're reading it!
 ### Kinematic Analysis
 #### 1. Run the forward_kinematics demo and evaluate the kr210.urdf.xacro file to perform kinematic analysis of Kuka KR210 robot and derive its DH parameters.
 
-| i | alpha_i-1 | a_i-1 | d_i | theta_i |
+Based on the information in kr210.urdf.xacro and the diagram below (basically a recreation of the diagram in the lessons), I derived the DH parameter table as the following:
+
+| i | ![alphai-1](./misc_images/alpha_i-1.gif) | ![a_i-1](./misc_images/a_i-1.gif) | ![d_i](./misc_images/d_i.gif) | ![theta_i](./misc_images/theta_i.gif) |
 | --- | --- | --- | --- | --- |
 | 1 | 0 | 0 | 0.33 + 0.42 = 0.75 |  |
-| 2 | -pi/2 | 0.35 | 0 | theta_2 - pi/2 |
+| 2 | ![-pi/2](./misc_images/-pi2.gif) | 0.35 | 0 | ![theta_2 - pi/2](./misc_images/theta_2-pi2.gif) |
 | 3 | 0 | 1.25 | 0 |  |
-| 4 | -pi/2 | -0.054 | 0.96 + 0.54 = 1.5 |  |
-| 5 | pi/2 | 0 | 0 |  |
-| 6 | -pi/2 | 0 | 0 |  |
+| 4 | ![-pi/2](./misc_images/-pi2.gif) | -0.054 | 0.96 + 0.54 = 1.5 |  |
+| 5 | ![pi/2](./misc_images/pi2.gif) | 0 | 0 |  |
+| 6 | ![-pi/2](./misc_images/-pi2.gif) | 0 | 0 |  |
 | 7/G | 0 | 0 | 0.193 + 0.11 = 0.303 | 0 |
+
+Note that since all the joints are revolute joints, the ds are all constants while the thetas are not constant except for the gripper link. theta_2 is represented as theta_2 - pi/2 since X1 axis is not parallel to the X2 axis.
 
 ![KR210 DH Diagram][diagram]
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
-
-Links | alpha(i-1) | a(i-1) | d(i-1) | theta(i)
---- | --- | --- | --- | ---
-0->1 | 0 | 0 | L1 | qi
-1->2 | - pi/2 | L2 | 0 | -pi/2 + q2
-2->3 | 0 | 0 | 0 | 0
-3->4 |  0 | 0 | 0 | 0
-4->5 | 0 | 0 | 0 | 0
-5->6 | 0 | 0 | 0 | 0
-6->EE | 0 | 0 | 0 | 0
 
 
 #### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
