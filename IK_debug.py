@@ -66,7 +66,7 @@ def test_code(test_case):
     ## 
 
     ## Insert IK code here!
-    
+
     theta1 = 0
     theta2 = 0
     theta3 = 0
@@ -75,19 +75,19 @@ def test_code(test_case):
     theta6 = 0
 
     # gripper orientation correction as described in lesson
-    roll = symbols('roll')
-    pitch = symbols('pitch')
-    yaw = symbols('yaw')
-    R_x = Matrix([[ 1,          0,           0 ],
-                  [ 0,  cos(roll),  -sin(roll) ],
-                  [ 0,  sin(roll),   cos(roll) ]])
-    R_y = Matrix([[  cos(pitch),  0,  sin(pitch) ],
-                  [           0,  1,           0 ],
-                  [ -sin(pitch),  0,  cos(pitch) ]])
-    R_z = Matrix([[ cos(yaw),  -sin(yaw), 0 ],
-                  [ sin(yaw),   cos(yaw), 0 ],
-                  [        0,          0, 1 ]])
-    R_corr = R_z.evalf(subs={yaw: pi}) * R_y.evalf(subs={pitch: -pi/2})
+    r = symbols('r')
+    p = symbols('p')
+    y = symbols('y')
+    R_x = Matrix([[ 1,       0,        0 ],
+                  [ 0,  cos(r),  -sin(r) ],
+                  [ 0,  sin(r),   cos(r) ]])
+    R_y = Matrix([[  cos(p),  0,  sin(p) ],
+                  [       0,  1,       0 ],
+                  [ -sin(p),  0,  cos(p) ]])
+    R_z = Matrix([[ cos(y),  -sin(y), 0 ],
+                  [ sin(y),   cos(y), 0 ],
+                  [      0,        0, 1 ]])
+    R_corr = R_z.evalf(subs={y: pi}) * R_y.evalf(subs={p: -pi/2})
 
     # Extract end-effector position and orientation from request
     # px,py,pz = end-effector position
@@ -96,11 +96,11 @@ def test_code(test_case):
     py = req.poses[x].position.y
     pz = req.poses[x].position.z
 
-    (r, p, y) = tf.transformations.euler_from_quaternion(
+    (roll, pitch, yaw) = tf.transformations.euler_from_quaternion(
         [req.poses[x].orientation.x, req.poses[x].orientation.y,
             req.poses[x].orientation.z, req.poses[x].orientation.w])
 
-    R_ee = (R_z * R_y * R_x).evalf(subs={roll: r, pitch: p, yaw: y}) * R_corr
+    R_ee = (R_z * R_y * R_x).evalf(subs={r: roll, p: pitch, y: yaw}) * R_corr
 
     eePos = Matrix([[px], [py], [pz]])
     wcPos = eePos - 0.303 * R_ee[:, 2]
@@ -154,11 +154,11 @@ def test_code(test_case):
         T[i] = T[i].subs(CONST_DH)
 
     # composition of homogeneous transformations
-    R0_3 = (T[0][:3,:3] * T[1][:3,:3] * T[2][:3,:3]).evalf(subs={q[0]: theta1, q[1]: theta2, q[2]: theta3})
-    R3_6 = R0_3.inv('LU') * R_ee
+    R0_3 = (T[0] * T[1] * T[2]).evalf(subs={q[0]: theta1, q[1]: theta2, q[2]: theta3})
+    R3_6 = R0_3[:3,:3].inv('LU') * R_ee
 
     theta4 = atan2(R3_6[2,2], -R3_6[0,2])
-    theta5 = atan2(sqrt(R3_6[0,2] ** 2. + R3_6[2,2] ** 2.), R3_6[1,2])
+    theta5 = atan2(sqrt(R3_6[1,0] ** 2. + R3_6[1,1] ** 2.), R3_6[1,2])
     theta6 = atan2(-R3_6[1,1], R3_6[1,0])
 
     ##
@@ -177,16 +177,16 @@ def test_code(test_case):
         q[4]: theta5,
         q[5]: theta6
     }
-    T0_6 = T[0].evalf(subs = thetas)
+    T0_EE = T[0].evalf(subs = thetas)
     for i in range(1, 7):
-        T0_6 = T0_6 * T[i].evalf(subs = thetas)
+        T0_EE = T0_EE * T[i].evalf(subs = thetas)
 
     ## End your code input for forward kinematics here!
     ########################################################################################
 
     ## For error analysis please set the following variables of your WC location and EE location in the format of [x,y,z]
     your_wc = wcPos # <--- Load your calculated WC values in this array
-    your_ee = T0_6[:3, 3] # <--- Load your calculated end effector value from your forward kinematics
+    your_ee = T0_EE[:3, 3] # <--- Load your calculated end effector value from your forward kinematics
     ########################################################################################
 
     ## Error analysis
