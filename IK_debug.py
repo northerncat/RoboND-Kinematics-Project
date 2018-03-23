@@ -66,7 +66,6 @@ def test_code(test_case):
     ## 
 
     ## Insert IK code here!
-
     theta1 = 0
     theta2 = 0
     theta3 = 0
@@ -100,12 +99,16 @@ def test_code(test_case):
         [req.poses[x].orientation.x, req.poses[x].orientation.y,
             req.poses[x].orientation.z, req.poses[x].orientation.w])
 
+    # the orientation of the end effector would be the roll, pitch yaw combined
+    # with the rotation correction
     R_ee = (R_z * R_y * R_x).evalf(subs={r: roll, p: pitch, y: yaw}) * R_corr
 
+    # the wrist center would be offset backward from the end effector
     eePos = Matrix([[px], [py], [pz]])
     wcPos = eePos - 0.303 * R_ee[:, 2]
 
-    # symbols for the DH parameters, q stands for theta
+    # symbols for the DH parameters, q stands for theta, note that q[0] here
+    # is actually q1 and d[0] is actually d1 in the lesson notation
     q = symbols('q1:8')
     d = symbols('d1:8')
     a = symbols('a0:7')
@@ -122,15 +125,19 @@ def test_code(test_case):
         alpha[6]:     0,  a[6]:      0,  d[6]: 0.303,         q[6]: 0.0
     }
 
+    ### Inverse Position
+    # theta1 can be obtained by projecting the wrist center to the xy plane and
+    # calculating the angle between origin-wc vs x-axis
     theta1 = atan2(wcPos[1], wcPos[0])
 
-    # side a: distance between link 3 and write center, (sqrt(d[3] ** 2 + a[3] ** 2)).evalf(subs=CONST_DH)
+    # use the triangle diagram to get theta 2 and theta 3
+    # side a: distance between link 3 and write center, or sqrt(d[3] ** 2 + a[3] ** 2)
     sa = 1.501
     # side b: distance between link 2 and wrist center, use world coordinates to calculate dist
-    dx2Wc = sqrt(wcPos[0] ** 2. + wcPos[1] ** 2.) - 0.35
-    dz2Wc = wcPos[2] - 0.75
+    dx2Wc = sqrt(wcPos[0] ** 2. + wcPos[1] ** 2.) - 0.35 # offset on xy plane
+    dz2Wc = wcPos[2] - 0.75 # offset of z
     sb = sqrt(dx2Wc ** 2. + dz2Wc ** 2.)
-    # side c: distance between link 2 and 3, a[2]
+    # side c: distance between link 2 and 3, or a[2]
     sc = 1.25
 
     # use cosine law to get all three angles for theta 2 and 3
@@ -138,12 +145,13 @@ def test_code(test_case):
     tb = acos((sa ** 2. + sc ** 2. - sb ** 2.) / (2.0 * sa * sc))
     tc = acos((sa ** 2. + sb ** 2. - sc ** 2.) / (2.0 * sa * sb))
 
-    # use the diagram to compute theta2 and theta 3
-    # theta2 would be pi/2 minus angle a, then minus the angle of link2 to wrist center vs X1 axis
+    # use the diagram to compute theta 2 and theta 3
+    # theta2 would be pi/2 minus angle a, then minus the angle of link2-wc vs X1 axis
     theta2 = pi/2. - ta - atan2(dz2Wc, dx2Wc)
-    # theta3 would be the negative of angle b + angle between link 3 to wrist center (abs(atan2(a[3], d[3]))) minus pi/2
+    # theta3 would be the negative of angle b + angle between link3-wc vs X3 (abs(atan2(a[3], d[3]))) minus pi/2
     theta3 = - (tb + 0.036 - pi/2.)
 
+    ### Inverse Orientation
     # homogeneous transformation matrices
     T = []
     for i in range(7):
@@ -157,6 +165,7 @@ def test_code(test_case):
     R0_3 = (T[0] * T[1] * T[2]).evalf(subs={q[0]: theta1, q[1]: theta2, q[2]: theta3})
     R3_6 = R0_3[:3,:3].inv('LU') * R_ee
 
+    # use the R3_6 matrix elements to get theta 4 through 6
     theta4 = atan2(R3_6[2,2], -R3_6[0,2])
     theta5 = atan2(sqrt(R3_6[1,0] ** 2. + R3_6[1,1] ** 2.), R3_6[1,2])
     theta6 = atan2(-R3_6[1,1], R3_6[1,0])
