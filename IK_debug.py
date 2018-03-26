@@ -166,9 +166,14 @@ def test_code(test_case):
     R3_6 = R0_3[:3,:3].inv('LU') * R_ee
 
     # use the R3_6 matrix elements to get theta 4 through 6
-    theta4 = atan2(R3_6[2,2], -R3_6[0,2])
-    theta5 = atan2(sqrt(R3_6[1,0] ** 2. + R3_6[1,1] ** 2.), R3_6[1,2])
-    theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+    sine5 = sqrt(R3_6[0,2] ** 2. + R3_6[2,2] ** 2.)
+    theta5 = atan2(sine5, R3_6[1,2])
+    if sin(theta5) > 0:
+        theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+        theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+    else:
+        theta4 = atan2(-R3_6[2,2], R3_6[0,2])
+        theta6 = atan2(R3_6[1,1], -R3_6[1,0])
 
     ##
     ########################################################################################

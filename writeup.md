@@ -76,6 +76,7 @@ Since the end-effector frame in our analysis is different from the world coordin
 #### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
 
 - Inverse Position Kinematics
+
 First, we need to offset the end-effector position back to the wrist center. To do so, we want to move along the negative-z axis (the third column of the base to end-effector transform) of the end-effector frame by d_G:
 
 <p align="center">
@@ -88,7 +89,7 @@ If we project the wrist center onto the x-y plane, we can see that the angle is 
 <img src="./misc_images/theta1.gif" alt="theta1" />
 </p>
 
-Based on the diagram provided in the lesson, we can infer theta2 and theta3 from the relative position of the wrist center against the links 2 and 3. 
+Based on the diagram provided in the lesson, we can infer theta2 and theta3 from the relative position of the wrist center against the links 2 and 3. Theta2 can be computed as the angle between the original Z3 axis and the new Z3 axis. For theta3, we can calculate how much the line between link 3 and the wrist center has rotated.
 
 <p align="center">
 <img src="./misc_images/theta23.jpg" alt="theta23" />
@@ -98,6 +99,7 @@ Based on the diagram provided in the lesson, we can infer theta2 and theta3 from
 </p>
 
 - Inverse Orientation Kinematics
+
 The inverse orientation problem uses joints 4 through 6 to composite into the end-effector orientation. To calculate the orientation transform of joints 4 through 6, we have to use the rotation part of the transformation matrices, by taking out the rotation part of the transform from base link to end-effector, and then pre-multiplying by the inverse of the rotation part of the transform from base link through joint 3.
 
 <p align="center">
@@ -110,10 +112,24 @@ We can estimate R0_3 using the thetas 1 to 3, and use the end-effector pose for 
 <img src="./misc_images/R36_theta.gif" alt="R36_theta" />
 </p>
 
-We can see that the elements of the R3_6 matrix correspond to cosines and sines of thetas 4 through 6. As a result, we can calculate the thetas as (using zero-indexing into the array):
+We can see that the elements of the R3_6 matrix correspond to cosines and sines of thetas 4 through 6. Note how the sine of theta5 can be obtained in two different ways - by combining elements (0,2) and (2,2), and by combining elements (1,0) and (1,1). I do not see a clear difference choosing either way, so I tested both of them in the simulator. The success rates were the same (10/11), but the first option seems to follow the trajectory better in some cases. As a result, I chose to go with the first solution.
+
+After selecting the solution for theta5, we can compute theta5 as:
 
 <p align="center">
-<img src="./misc_images/theta46.gif" alt="theta46" />
+<img src="./misc_images/theta5.gif" alt="theta5" />
+</p>
+
+However, since we chose to use the positive root for the sine value, we should consider the solutions of thetas 4 and 6 differently based on theta 5. Observe the rotation matrix and see that the elements (0,2), (2,2), (1,0), (1,1) are affected by the sign of the sine value of theta5. To make sure that the sign of sin(theta5) does not affect the solutions of thetas 4 and 6, we should use the following solution when sin(theta5) is positive:
+
+<p align="center">
+<img src="./misc_images/theta46_positive.gif" alt="theta46_positive" />
+</p>
+
+and this solution when sin(theta5) is negative:
+
+<p align="center">
+<img src="./misc_images/theta46_negative.gif" alt="theta46_negative" />
 </p>
 
 ### Project Implementation
